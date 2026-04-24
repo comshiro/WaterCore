@@ -1,0 +1,115 @@
+Perfect next step. For your disaster-risk solution, here is the exact tool and API stack I recommend, with practical import paths so you can start coding immediately.
+
+**Minimum Required Stack (for a strong hackathon MVP)**
+
+1. Copernicus data discovery and download
+- API: Copernicus Data Space Ecosystem STAC API
+- URL: https://catalogue.dataspace.copernicus.eu/stac
+- Use for: finding Sentinel-1 and Sentinel-2 scenes by area/time/cloud cover
+- Python package: pystac-client
+
+2. Copernicus data processing
+- API: Sentinel Hub Process API
+- URL: https://services.sentinel-hub.com/api/v1/process
+- Use for: requesting ready-to-use rasters (NDVI, NDWI, custom flood masks) without building your own heavy preprocessing stack
+- Python package: sentinelhub
+
+3. Climate and hydrological baselines
+- API: Copernicus Climate Data Store API
+- Use for: ERA5 rainfall/temperature baselines, drought anomaly context, seasonal comparisons
+- Python package: cdsapi
+
+4. Galileo/EGNOS positioning evidence
+- Source: GNSS device stream (receiver or phone) using Galileo-enabled observations
+- Use for: trusted geotagging of field reports, sensor locations, and flood marks
+- Python packages: pyserial, pynmea2
+- Optional precision path: NTRIP corrections via pygnssutils or external RTK tools
+
+5. Geospatial analytics
+- Libraries: rasterio, rioxarray, xarray, geopandas, shapely, numpy, pandas
+- Use for: clipping AOI, index calculations, time aggregation, risk scoring
+
+6. Map and alert delivery
+- Backend: FastAPI
+- Frontend map: Leaflet or MapLibre (or quick MVP with folium)
+- Use for: risk map endpoint, alert endpoint, user-facing dashboard
+
+---
+
+**Install Command (Python)**
+
+Use one install step:
+
+pip install requests pystac-client sentinelhub cdsapi rasterio rioxarray xarray geopandas shapely numpy pandas fastapi uvicorn folium pyserial pynmea2 pygnssutils
+
+---
+
+**Exact Python Imports You Will Use**
+
+import os
+import json
+import requests
+import numpy as np
+import pandas as pd
+import geopandas as gpd
+import xarray as xr
+import rioxarray as rxr
+import rasterio
+from shapely.geometry import Polygon, mapping
+from datetime import datetime, timedelta
+from pystac_client import Client
+from sentinelhub import SHConfig, SentinelHubRequest, DataCollection, MimeType, BBox, CRS
+import cdsapi
+from fastapi import FastAPI
+import folium
+import serial
+import pynmea2
+
+---
+
+**API Access Setup (what accounts/keys you need)**
+
+1. Copernicus Data Space account
+- Create account on Copernicus Data Space
+- Use credentials/token for catalogue and downloads
+
+2. Sentinel Hub account
+- Create account and OAuth client
+- Store client id and client secret in environment variables
+
+3. CDS account
+- Register at Copernicus Climate Data Store
+- Configure CDS API key locally for cdsapi client
+
+4. Galileo data source
+- Ensure your GNSS receiver/phone provides Galileo constellation observations
+- If using correction streams, register with an NTRIP provider (and optionally EGNOS-related service access if available in your region)
+
+---
+
+**How this maps to your challenge scoring**
+
+1. Relevance
+- Sentinel-1 flood mapping + ERA5 drought/rain context + Galileo geotagged field evidence directly addresses extreme water event monitoring and warning.
+
+2. Innovativeness
+- Fusion of EO risk layers with GNSS-verified ground truth creates stronger trust and operational value than static map-only tools.
+
+3. Team quality
+- Clear split: EO/data pipeline, risk model, API/dashboard, business/pilot outreach.
+
+---
+
+**Recommended MVP API workflow (simple and robust)**
+
+1. Query STAC for latest Sentinel scenes in your AOI.
+2. Request processed raster via Sentinel Hub Process API.
+3. Pull CDS baseline time series for anomaly computation.
+4. Compute risk index and threshold-based alerts.
+5. Attach Galileo-tagged field reports for validation.
+6. Serve map and alerts via FastAPI endpoints.
+
+If you want, I can now give you:
+1. A ready-to-run project structure.
+2. A minimal starter code for each API connector.
+3. A single risk-index formula (flood and drought modes) you can demo in 24 hours.
