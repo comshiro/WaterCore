@@ -23,7 +23,7 @@ if (typeof L === "undefined") {
   throw new Error("Leaflet is not available");
 }
 
-// 🌍 Map setup
+// Map setup
 const map = L.map("map").setView([45.757, 21.23], 9);
 
 L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
@@ -35,14 +35,14 @@ const selectedPoints = [];
 let selectionRectangle = null;
 let currentScenes = [];
 
-// ⏱️ Default time range
+// Default time range
 const now = new Date();
 const threeDaysAgo = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000);
 
 startInput.value = toDatetimeLocalValue(threeDaysAgo);
 endInput.value = toDatetimeLocalValue(now);
 
-// 🖱️ Map click → bbox selection
+// Map click → bbox selection
 map.on("click", (event) => {
   if (selectedPoints.length === 2) {
     selectedPoints.length = 0;
@@ -52,7 +52,7 @@ map.on("click", (event) => {
   renderSelection();
 });
 
-// 🧹 Clear selection
+// Clear selection
 clearAreaButton.addEventListener("click", () => {
   selectedPoints.length = 0;
   renderSelection();
@@ -64,7 +64,7 @@ clearAreaButton.addEventListener("click", () => {
   output.textContent = "Selection cleared.";
 });
 
-// 📡 Query scenes
+// Query scenes
 queryScenesButton.addEventListener("click", async () => {
   const bbox = getBboxFromSelection();
 
@@ -114,7 +114,7 @@ queryScenesButton.addEventListener("click", async () => {
   }
 });
 
-// 🌐 Assess risk for entire area
+// Assess risk for entire area
 assessAreaButton.addEventListener("click", async () => {
   const bbox = getBboxFromSelection();
 
@@ -123,22 +123,13 @@ assessAreaButton.addEventListener("click", async () => {
     return;
   }
 
-  if (!startInput.value || !endInput.value) {
-    output.textContent = "Set date/time range.";
-    return;
-  }
-
   riskPanel.hidden = false;
-  riskOutput.textContent = "Assessing risk...";
+  riskOutput.textContent = "Assesing risk..."
 
-  const payload = {
-    bbox,
-    start_datetime: new Date(startInput.value).toISOString(),
-    end_datetime: new Date(endInput.value).toISOString(),
-  };
+  const payload = { bbox }
 
   try {
-    const response = await fetch(`${API_BASE}/assess-area`, {
+    const response = await fetch(`${FLOOD_API_BASE}/detect`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -159,7 +150,7 @@ assessAreaButton.addEventListener("click", async () => {
   }
 });
 
-// 🎯 Draw bbox
+// Draw bbox
 function renderSelection() {
   if (selectionRectangle) {
     map.removeLayer(selectionRectangle);
@@ -183,7 +174,7 @@ function renderSelection() {
   output.textContent = `BBox: ${JSON.stringify(getBboxFromSelection())}`;
 }
 
-// 📦 Compute bbox
+// Compute bbox
 function getBboxFromSelection() {
   if (selectedPoints.length < 2) return null;
 
@@ -197,14 +188,14 @@ function getBboxFromSelection() {
   ];
 }
 
-// 🕒 Format datetime
+// Format datetime
 function toDatetimeLocalValue(date) {
   const pad = (v) => String(v).padStart(2, "0");
 
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
-// 📋 Render scenes (no risk buttons)
+// Render scenes (no risk buttons)
 function renderScenesTable(scenes, totalCount = scenes.length) {
   scenesTbody.innerHTML = "";
 
@@ -243,7 +234,7 @@ function renderScenesTable(scenes, totalCount = scenes.length) {
   });
 }
 
-// 🧪 Demo
+// Demo
 demoButton.addEventListener("click", async () => {
   output.textContent = "Loading demo...";
 
@@ -258,7 +249,7 @@ demoButton.addEventListener("click", async () => {
 });
 
 // ========================================
-// 📡 AREA TRACKING
+// AREA TRACKING
 // ========================================
 
 // Initialize tracking only after DOM is ready

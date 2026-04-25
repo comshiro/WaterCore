@@ -39,7 +39,7 @@ class RiskResponse(BaseModel):
     factors: Dict[str, float]
     generated_at: datetime
 
-    # 🔥 future-proof additions
+    # future-proof additions
     source: Optional[str] = None
     input_mode: Literal["point", "bbox", "scene_aggregation"] = "point"
     confidence: Optional[float] = None
@@ -166,7 +166,7 @@ class ClimateBaselineResponse(BaseModel):
 
 
 # =========================
-# FUTURE: SCENE AGGREGATION (IMPORTANT FOR YOU)
+# FUTURE: SCENE AGGREGATION
 # =========================
 
 class SceneAggregationInput(BaseModel):
