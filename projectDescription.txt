@@ -1,0 +1,92 @@
+Project Title
+WaterCore - weilding Copernicus - Disaster Risk Intelligence for Insurers
+
+1) Problem
+Extreme water events (floods, droughts, torrential rain) are increasing in frequency and severity.
+Insurers struggle with:
+- late or fragmented risk signals,
+- weak local granularity for underwriting,
+- slow event response and loss triage,
+- pricing uncertainty in climate-exposed zones.
+
+2) Solution
+We build a software platform for insurers and reinsurers that calculates dynamic natural-disaster risk scores at zone and asset level.
+The platform combines Copernicus Earth Observation data, Galileo/EGNOS-enabled geolocation, and AI-based risk modeling.
+
+Core capabilities:
+- Pre-event underwriting score: location-specific risk profile for pricing and portfolio steering.
+- During-event monitoring: near-real-time hazard tracking and alerting.
+- Post-event triage: impact prioritization for faster operational decisions.
+- Parametric trigger designer: configurable objective thresholds for rapid payout products.
+
+3) Copernicus and Galileo/EGNOS Data Usage
+Copernicus inputs:
+- Sentinel-1 SAR for all-weather flood extent and surface water dynamics.
+- Sentinel-2 optical for vegetation stress and moisture proxies.
+- Copernicus climate and rainfall baselines for anomaly detection.
+
+Galileo/EGNOS inputs:
+- precise geotagging of field observations and IoT sensor points,
+- improved integrity and trust in location-based trigger validation,
+- better geo-accuracy for event evidence and claims prioritization workflows.
+
+4) Target Customers and Users
+Primary customers:
+- P&C insurers,
+- reinsurers,
+- MGA/parametric insurance providers.
+
+Primary users:
+- catastrophe underwriting teams,
+- portfolio risk analysts,
+- claims operations teams,
+- parametric product managers.
+
+5) MVP Scope (48 Hours)
+MVP objective:
+Deliver a working risk intelligence prototype for one pilot region and one event type (flood-first, drought-ready).
+
+MVP features:
+- Interactive risk map with zone-level risk score (Low/Medium/High).
+- Time-based anomaly panel (rainfall and moisture deviations from baseline).
+- Configurable alert threshold (for underwriting watchlist and event response).
+- Simple API endpoint returning risk score for a selected coordinate/zone.
+- One demo scenario showing decision impact on pricing or prioritization.
+
+Suggested architecture:
+- Data ingestion: Copernicus catalog and selected products.
+- Processing: geospatial feature extraction and risk scoring.
+- Backend API: risk query and alert endpoints.
+- Frontend: map dashboard with explainable risk factors.
+
+6) Why This Is Different (vs existing market solutions)
+This is not just another catastrophe map.
+Our differentiation:
+- European-first stack using Copernicus + Galileo/EGNOS by design.
+- Combined flood + drought intelligence in one product logic.
+- Explainable risk score with factor-level contribution visibility.
+- Parametric trigger prototyping built into the same workflow.
+- Fast integration path via API for insurer pricing and operations teams.
+
+7) Business Value
+For insurers, the platform can:
+- improve risk selection,
+- support more accurate and defensible pricing,
+- reduce response time during events,
+- enable innovative parametric coverage design,
+- improve portfolio resilience under climate pressure.
+
+8) Hackathon Criteria Fit
+Relevance:
+- Directly addresses disaster risk monitoring for extreme water events.
+- Uses Copernicus and Galileo/EGNOS data in core functionality.
+
+Innovativeness:
+- Hybrid EO + GNSS + AI risk intelligence with explainable outputs.
+- Bridges underwriting, event operations, and parametric product design.
+
+Quality of Team:
+- Clear cross-functional split: geospatial/data engineering, modeling/backend, product/pitch and customer validation.
+
+9) One-Sentence Pitch
+WaterCore - weilding Copernicus helps insurers price and manage natural-disaster risk more accurately by turning Copernicus and Galileo/EGNOS data into explainable, actionable risk intelligence in near real time.

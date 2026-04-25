@@ -1,0 +1,58 @@
+:root {
+  --bg: #f5f2e8;
+  --text: #1f2a30;
+  --card: #fffaf0;
+  --accent: #0c6e75;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  color: var(--text);
+  background: radial-gradient(circle at top right, #d9f0f5, var(--bg));
+}
+
+.shell {
+  max-width: 780px;
+  margin: 0 auto;
+  padding: 32px 20px;
+}
+
+h1 {
+  margin-bottom: 0.3rem;
+}
+
+.subtitle {
+  margin-top: 0;
+  color: #3f545e;
+}
+
+.card {
+  margin-top: 20px;
+  background: var(--card);
+  border: 1px solid #d6d6c8;
+  border-radius: 12px;
+  padding: 16px;
+}
+
+button {
+  background: var(--accent);
+  color: #fff;
+  border: 0;
+  border-radius: 10px;
+  padding: 10px 14px;
+  cursor: pointer;
+}
+
+pre {
+  margin-top: 14px;
+  white-space: pre-wrap;
+  background: #f0f4f2;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid #d8e2dc;
+}
