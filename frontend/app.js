@@ -6,6 +6,7 @@ const demoButton = document.getElementById("load-demo");
 const queryScenesButton = document.getElementById("query-scenes");
 const clearAreaButton = document.getElementById("clear-area");
 const assessAreaButton = document.getElementById("assess-area");
+const assessHeatmapButton = document.getElementById("assess-heatmap");
 
 const startInput = document.getElementById("start-datetime");
 const endInput = document.getElementById("end-datetime");

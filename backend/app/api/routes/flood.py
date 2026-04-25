@@ -15,10 +15,35 @@ from backend.app.services.area_tracking import (
 )
 from backend.app.models.schemas import ClimateBaselineRequest
 
+import numpy as np
+
+from risk import (
+    Client,
+    catalog_url,
+    training_bbox,
+    sentinel_monthly_ndwi,
+    make_flood_mask,
+    load_dem_and_worldcover,
+    align_training_layers,
+    training_dataframe,
+    train_rf,
+    predict_risk,
+)
+
 router = APIRouter(prefix="/flood", tags=["flood"])
 
 class FloodRequest(BaseModel):
     bbox: List[float]
+
+class HeatmapRequest(BaseModel):
+    bbox: List[float]
+    include_grid: bool = False
+
+_ML_STATE: Dict[str, Any] = {
+    "model": None,
+    "catalog": None,
+    "is_trained": False,
+}
 
 
 @router.post("/detect")
@@ -183,3 +208,67 @@ def remove_tracked_area(area_id: int) -> Dict[str, str]:
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+    
+
+# ============================================
+# RISK HEATMAP
+# ============================================
+
+def _ensure_ml_model() -> str:
+    if _ML_STATE["is_trained"]:
+        return "ready"
+    
+    catalog = Client.open(catalog_url)
+
+    ndwi_may_2023 = sentinel_monthly_ndwi(catalog, training_bbox, "2023-05-01/2023-05-31")
+    ndwi_may_2024 = sentinel_monthly_ndwi(catalog, training_bbox, "2024-05-01/2024-05-31")
+    flood_mask = make_flood_mask(ndwi_may_2023, ndwi_may_2024)
+
+    dem, wc = load_dem_and_worldcover(catalog, training_bbox)
+    elevation, slope, landcover, _building_flag, permanent_water_mask, dist_to_water = align_training_layers(
+        dem, wc, ndwi_may_2023
+    )
+
+    df = training_dataframe(
+        elevation, slope, landcover, flood_mask, dist_to_water, permanent_water_mask
+    )
+    model = train_rf(df)
+
+    _ML_STATE["catalog"] = catalog
+    _ML_STATE["model"] = model
+    _ML_STATE["is_trained"] = True
+    return "trained_now"
+
+@router.post("/heatmap")
+def heatmap(payload: HeatmapRequest) -> Dict[str, Any]:
+    try:
+        bbox = payload.bbox
+        if len(bbox) != 4:
+            raise HTTPException(status_code=400, detail="bbox must be [min_lon, min_lat, max_lon, max_lat]")
+
+        status = _ensure_ml_model()
+
+        risk_da = predict_risk(bbox, _ML_STATE["model"], _ML_STATE["catalog"])
+        arr = risk_da.values.astype("float32")
+        valid = np.isfinite(arr)
+
+        response: Dict[str, Any] = {
+            "bbox": bbox,
+            "model_status": status,
+            "width": int(arr.shape[1]),
+            "height": int(arr.shape[0]),
+            "min_risk": float(np.nanmin(arr)) if valid.any() else None,
+            "max_risk": float(np.nanmax(arr)) if valid.any() else None,
+            "mean_risk": float(np.nanmean(arr)) if valid.any() else None,
+            "nodata_value": -1.0,
+        }
+
+        if payload.include_grid:
+            response["risk_grid"] = np.where(np.isfinite(arr), arr, -1.0).tolist()
+        
+        return response
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
