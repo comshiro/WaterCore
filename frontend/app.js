@@ -373,6 +373,10 @@ async function loadTrackedAreas() {
             ${area.flood_score !== null ? ` (${(area.flood_score * 100).toFixed(0)}%)` : ""}
           </span>
         </div>
+        <div class="hint" style="font-size: 0.72rem;">
+          ${area.estimated_water_height_m !== null && area.estimated_water_height_m !== undefined ? `Est. water height: ${area.estimated_water_height_m.toFixed(2)} m` : "Est. water height: n/a"}
+          ${area.confidence !== null && area.confidence !== undefined ? ` | Confidence: ${(area.confidence * 100).toFixed(0)}%` : ""}
+        </div>
         <div class="hint" style="font-size: 0.7rem;">
           Last check: ${area.last_checked ? new Date(area.last_checked).toLocaleString() : "Never"}
         </div>

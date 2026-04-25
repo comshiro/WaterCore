@@ -3,7 +3,7 @@ from pydantic import BaseModel
 from typing import List, Dict, Any, Optional
 from datetime import datetime, timedelta, timezone
 
-from backend.app.services.real_time_detection import compute_flood_score, FloodDetectionInput
+from backend.app.services.real_time_detection import compute_flood_assessment, FloodDetectionInput
 from backend.app.services.data_sources import fetch_climate_baseline
 from backend.app.services.area_tracking import (
     add_tracked_area,
@@ -35,39 +35,62 @@ def detect_flood(payload: FloodRequest):
         lat = (min_lat + max_lat) / 2
         lon = (min_lon + max_lon) / 2
 
-        # 48h window assumption (insurance logic)
         end_time = datetime.now(timezone.utc)
-        start_time = end_time - timedelta(hours=48)
+        retry_windows_hours = [48, 96, 168]
+        climate = None
+        assessment = None
+        used_window_hours = None
 
-        # fetch rainfall anomaly (REAL CDS pipeline via your service)
-        climate = fetch_climate_baseline(
-            ClimateBaselineRequest(
-                latitude=lat,
-                longitude=lon,
+        for window_hours in retry_windows_hours:
+            start_time = end_time - timedelta(hours=window_hours)
+
+            climate = fetch_climate_baseline(
+                ClimateBaselineRequest(
+                    latitude=lat,
+                    longitude=lon,
+                    start_datetime=start_time,
+                    end_datetime=end_time,
+                )
+            )
+
+            flood_input = FloodDetectionInput(
+                bbox=bbox,
+                rainfall_anomaly=climate.precipitation_anomaly,
                 start_datetime=start_time,
                 end_datetime=end_time,
             )
-        )
 
-        # build proper input
-        flood_input = FloodDetectionInput(
-            bbox=bbox,
-            rainfall_anomaly=climate.precipitation_anomaly,
-            start_datetime=start_time,
-            end_datetime=end_time,
-        )
+            try:
+                assessment = compute_flood_assessment(flood_input)
+                used_window_hours = window_hours
+                break
+            except ValueError as err:
+                if "no valid" in str(err).lower():
+                    continue
+                raise
 
-        score = compute_flood_score(flood_input)
+        if assessment is None or climate is None:
+            raise ValueError("Sentinel Hub returned no valid VV pixels across retry windows (48h/96h/168h)")
+
+        score = assessment["flood_score"]
 
         return {
             "bbox": bbox,
             "flood_score": score,
+            "estimated_water_height_m": assessment["estimated_water_height_m"],
+            "confidence": assessment["confidence"],
             "payout_triggered": score > 0.7,
-            "confidence_window_hours": 48,
+            "confidence_window_hours": used_window_hours,
             "climate_signal": {
                 "rainfall_anomaly": climate.precipitation_anomaly,
                 "temperature_anomaly": climate.temperature_anomaly,
                 "soil_moisture_anomaly": climate.soil_moisture_anomaly,
+            },
+            "sar_signal": {
+                "pre_vv": assessment["pre_vv"],
+                "post_vv": assessment["post_vv"],
+                "pre_valid_ratio": assessment["pre_valid_ratio"],
+                "post_valid_ratio": assessment["post_valid_ratio"],
             },
         }
 
@@ -94,6 +117,8 @@ class TrackedAreaResponse(BaseModel):
     last_checked: Optional[str] = None
     flood_status: Optional[str] = None
     flood_score: Optional[float] = None
+    estimated_water_height_m: Optional[float] = None
+    confidence: Optional[float] = None
 
 
 @router.post("/track-area", response_model=TrackedAreaResponse)

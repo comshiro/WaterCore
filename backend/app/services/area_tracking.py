@@ -8,13 +8,19 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import List, Dict, Any
 
-from backend.app.services.real_time_detection import compute_flood_score, FloodDetectionInput
+from backend.app.services.real_time_detection import compute_flood_assessment, FloodDetectionInput
 from backend.app.services.data_sources import fetch_climate_baseline
 from backend.app.models.schemas import ClimateBaselineRequest
 
 
 DATA_DIR = Path(__file__).parent.parent.parent.parent / "data"
 TRACKED_AREAS_FILE = DATA_DIR / "tracked_areas.jsonl"
+
+
+def _same_bbox(a: List[float], b: List[float], tol: float = 1e-6) -> bool:
+    if len(a) != 4 or len(b) != 4:
+        return False
+    return all(abs(x - y) <= tol for x, y in zip(a, b))
 
 
 def _ensure_data_dir():
@@ -42,6 +48,12 @@ def add_tracked_area(bbox: List[float], label: str = None) -> Dict[str, Any]:
         Area record with ID and metadata
     """
     _ensure_data_dir()
+
+    # Avoid duplicate tracked entries for the same bbox.
+    existing_areas = load_tracked_areas()
+    for existing in existing_areas:
+        if _same_bbox(existing.get("bbox", []), bbox):
+            return existing
     
     area_id = int(datetime.now(timezone.utc).timestamp() * 1000)
     
@@ -53,6 +65,8 @@ def add_tracked_area(bbox: List[float], label: str = None) -> Dict[str, Any]:
         "last_checked": None,
         "flood_status": None,
         "flood_score": None,
+        "estimated_water_height_m": None,
+        "confidence": None,
     }
     
     # Append to file (JSONL format)
@@ -107,30 +121,49 @@ def check_area_for_flood(area: Dict[str, Any]) -> Dict[str, Any]:
     lat = (min_lat + max_lat) / 2
     lon = (min_lon + max_lon) / 2
     
-    # 48h window for Sentinel-1 analysis
+    # Retry windows to improve reliability when one short window has no valid pixels.
     end_time = datetime.now(timezone.utc)
-    start_time = end_time - timedelta(hours=48)
+    retry_windows_hours = [48, 96, 168]
     
     try:
-        # Fetch rainfall anomaly
-        climate = fetch_climate_baseline(
-            ClimateBaselineRequest(
-                latitude=lat,
-                longitude=lon,
+        assessment = None
+        used_window_hours = None
+
+        for window_hours in retry_windows_hours:
+            start_time = end_time - timedelta(hours=window_hours)
+
+            # Fetch rainfall anomaly for the same analysis window.
+            climate = fetch_climate_baseline(
+                ClimateBaselineRequest(
+                    latitude=lat,
+                    longitude=lon,
+                    start_datetime=start_time,
+                    end_datetime=end_time,
+                )
+            )
+
+            flood_input = FloodDetectionInput(
+                bbox=bbox,
+                rainfall_anomaly=climate.precipitation_anomaly,
                 start_datetime=start_time,
                 end_datetime=end_time,
             )
-        )
-        
-        # Compute flood score
-        flood_input = FloodDetectionInput(
-            bbox=bbox,
-            rainfall_anomaly=climate.precipitation_anomaly,
-            start_datetime=start_time,
-            end_datetime=end_time,
-        )
-        
-        flood_score = compute_flood_score(flood_input)
+
+            try:
+                assessment = compute_flood_assessment(flood_input)
+                used_window_hours = window_hours
+                break
+            except ValueError as err:
+                message = str(err)
+                if "no valid VV pixels" in message.lower() or "no valid" in message.lower():
+                    # Try a wider window before failing.
+                    continue
+                raise
+
+        if assessment is None:
+            raise ValueError("Sentinel Hub returned no valid VV pixels across retry windows (48h/96h/168h)")
+
+        flood_score = assessment["flood_score"]
         
         # Determine status
         if flood_score > 0.7:
@@ -142,6 +175,9 @@ def check_area_for_flood(area: Dict[str, Any]) -> Dict[str, Any]:
         
         area["flood_score"] = flood_score
         area["flood_status"] = flood_status
+        area["estimated_water_height_m"] = assessment["estimated_water_height_m"]
+        area["confidence"] = assessment["confidence"]
+        area["analysis_window_hours"] = used_window_hours
         area["last_checked"] = datetime.now(timezone.utc).isoformat()
         area.pop("error", None)
         
@@ -150,6 +186,9 @@ def check_area_for_flood(area: Dict[str, Any]) -> Dict[str, Any]:
     except Exception as e:
         area["flood_status"] = "ERROR"
         area["flood_score"] = None
+        area["estimated_water_height_m"] = None
+        area["confidence"] = None
+        area["analysis_window_hours"] = None
         area["last_checked"] = datetime.now(timezone.utc).isoformat()
         area["error"] = str(e)
         return area

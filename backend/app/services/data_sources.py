@@ -1,7 +1,7 @@
 import base64
 from io import BytesIO
 from datetime import datetime, timezone
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
 import httpx
 from PIL import Image
@@ -283,12 +283,12 @@ def fetch_climate_baseline(payload) -> ClimateBaselineResponse:
         generated_at=datetime.now(timezone.utc),
     )
 
-def get_sentinel1_vv_mean(bbox: List[float], start: datetime, end: datetime) -> float:
+def get_sentinel1_vv_stats(bbox: List[float], start: datetime, end: datetime) -> Tuple[float, float]:
     """
     Fetch Sentinel-1 VV backscatter proxy using Sentinel Hub.
 
     Returns:
-        float: mean VV intensity (0–1 normalized proxy)
+        tuple[float, float]: (mean_vv, valid_pixel_ratio)
     """
 
     settings = get_settings()
@@ -306,7 +306,10 @@ function setup() {
 }
 
 function evaluatePixel(sample) {
-  let vv = Math.max(0, Math.min(1, (sample.VV + 30) / 30));
+    // Convert linear VV to dB then normalize approximately from [-25 dB, 0 dB] to [0, 1].
+    // This avoids saturation and preserves spatial differences between locations.
+    let vvDb = 10.0 * Math.log(sample.VV + 1e-6) / Math.LN10;
+    let vv = Math.max(0, Math.min(1, (vvDb + 25.0) / 25.0));
   return [vv, vv, vv, sample.dataMask];
 }
 """.strip()
@@ -355,10 +358,19 @@ function evaluatePixel(sample) {
 
     img = Image.open(BytesIO(resp.content)).convert("RGBA")
     pixels = img.getdata()
+    total_pixels = len(pixels)
 
     # Compute mean VV using valid pixels only (alpha channel > 0).
     valid_vv = [r / 255.0 for r, _g, _b, a in pixels if a > 0]
     if not valid_vv:
         raise ValueError("Sentinel Hub returned no valid VV pixels for this bbox/time range")
 
-    return round(sum(valid_vv) / len(valid_vv), 4)
+    mean_vv = round(sum(valid_vv) / len(valid_vv), 4)
+    valid_ratio = round(len(valid_vv) / total_pixels, 4) if total_pixels else 0.0
+    return mean_vv, valid_ratio
+
+
+def get_sentinel1_vv_mean(bbox: List[float], start: datetime, end: datetime) -> float:
+    """Backward-compatible helper that returns only mean VV."""
+    mean_vv, _valid_ratio = get_sentinel1_vv_stats(bbox, start, end)
+    return mean_vv
