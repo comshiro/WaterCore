@@ -1,0 +1,263 @@
+:root {
+  --bg: #ece8df;
+  --text: #1f2a30;
+  --card: #fffaf0;
+  --accent: #0c6e75;
+  --accent-2: #13566a;
+  --border: #d6d6c8;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Trebuchet MS", "Lucida Sans Unicode", "Lucida Grande", "Lucida Sans", Arial, sans-serif;
+  color: var(--text);
+  background: radial-gradient(circle at top right, #d8ecf2 0%, #e7ece8 45%, var(--bg) 100%);
+}
+
+.shell {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 32px 20px;
+}
+
+h1 {
+  margin-bottom: 0.3rem;
+}
+
+h2 {
+  margin-top: 0;
+  margin-bottom: 0.5rem;
+}
+
+h3 {
+  margin: 0 0 8px;
+}
+
+.subtitle {
+  margin-top: 0;
+  color: #3f545e;
+}
+
+.hint {
+  margin: 0 0 12px;
+  color: #3f545e;
+}
+
+.card {
+  margin-top: 20px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+}
+
+#map {
+  width: 100%;
+  height: 360px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  margin-bottom: 14px;
+}
+
+.controls-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+label {
+  display: grid;
+  gap: 6px;
+  font-size: 0.9rem;
+  color: #33454d;
+}
+
+input {
+  border: 1px solid #c2cbc4;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font: inherit;
+}
+
+.action-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+button {
+  background: var(--accent);
+  color: #fff;
+  border: 0;
+  border-radius: 10px;
+  padding: 10px 14px;
+  cursor: pointer;
+  transition: background-color 120ms ease-in-out;
+}
+
+button:hover {
+  background: var(--accent-2);
+}
+
+button.secondary {
+  background: #d3d8d4;
+  color: #1f2a30;
+}
+
+pre {
+  margin-top: 14px;
+  white-space: pre-wrap;
+  background: #f0f4f2;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid #d8e2dc;
+}
+
+.results-panel {
+  margin-top: 14px;
+  border: 1px solid #d9dfda;
+  border-radius: 10px;
+  background: #fffef8;
+  padding: 12px;
+}
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+#scenes-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+#scenes-table th,
+#scenes-table td {
+  border-bottom: 1px solid #e5e9e6;
+  padding: 9px 8px;
+  text-align: left;
+  vertical-align: top;
+}
+
+#scenes-table th {
+  background: #eef4f0;
+}
+
+.mono {
+  font-family: "Consolas", "Courier New", monospace;
+  font-size: 0.82rem;
+}
+
+.small-btn {
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 0.82rem;
+}
+
+@media (max-width: 760px) {
+  .controls-grid {
+    grid-template-columns: 1fr;
+  }
+
+  #map {
+    height: 300px;
+  }
+}
+
+/* ===== LAYOUT FOR TRACKED AREAS ===== */
+
+.layout-container {
+  display: grid;
+  grid-template-columns: 1fr 280px;
+  gap: 16px;
+  align-items: start;
+}
+
+.tracked-areas-panel {
+  position: sticky;
+  top: 20px;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.tracked-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.tracked-item {
+  background: #f8faf7;
+  border: 1px solid #d9dfda;
+  border-radius: 8px;
+  padding: 10px;
+  font-size: 0.88rem;
+}
+
+.tracked-item-label {
+  font-weight: 500;
+  color: var(--text);
+}
+
+.tracked-item-bbox {
+  font-family: monospace;
+  font-size: 0.75rem;
+  color: #666;
+  margin: 4px 0;
+}
+
+.tracked-item-status {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-weight: 500;
+  margin: 4px 0;
+  font-size: 0.75rem;
+}
+
+.tracked-item-status.HIGH {
+  background: #ffd6d6;
+  color: #8b0000;
+}
+
+.tracked-item-status.MEDIUM {
+  background: #fff4cc;
+  color: #996600;
+}
+
+.tracked-item-status.LOW {
+  background: #d6f5d6;
+  color: #006600;
+}
+
+.tracked-item-status.CHECKING {
+  background: #e6f0ff;
+  color: #0047ab;
+}
+
+.tracked-item-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.tracked-item-actions button {
+  padding: 4px 8px;
+  font-size: 0.75rem;
+  flex: 1;
+}
+
+@media (max-width: 1024px) {
+  .layout-container {
+    grid-template-columns: 1fr;
+  }
+
+  .tracked-areas-panel {
+    max-height: 300px;
+  }
+}

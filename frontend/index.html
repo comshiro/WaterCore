@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WaterCore - weilding Copernicus</title>
+
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    />
+    <link rel="stylesheet" href="styles.css?v=3" />
+  </head>
+
+  <body>
+    <main class="shell">
+      <h1>WaterCore - weilding Copernicus</h1>
+      <p class="subtitle">Disaster risk scoring demo for insurance workflows</p>
+
+      <div class="layout-container">
+        <section class="card">
+          <h2>Scene Discovery</h2>
+
+          <p class="hint">
+            Click two points on the map to define a bounding box, then query Copernicus STAC.
+          </p>
+
+          <div id="map" aria-label="Map for area selection"></div>
+
+          <div class="controls-grid">
+            <label>
+              Start Date/Time
+              <input id="start-datetime" type="datetime-local" />
+            </label>
+
+            <label>
+              End Date/Time
+              <input id="end-datetime" type="datetime-local" />
+            </label>
+
+            <label>
+              Max Scenes
+              <input id="limit" type="number" min="1" max="100" value="10" />
+            </label>
+          </div>
+
+          <div class="action-row">
+            <button id="query-scenes">Find Scenes</button>
+            <button id="clear-area" class="secondary">Clear Area</button>
+            <button id="load-demo" class="secondary">Load Demo Risk</button>
+
+            <button id="assess-area">Assess Risk</button>
+            <button id="track-area" class="primary">📍 Track Area</button>
+          </div>
+
+          <section id="scenes-panel" class="results-panel" hidden>
+            <h3>Discovered Scenes</h3>
+            <p id="scenes-summary" class="hint"></p>
+
+            <div class="table-wrap">
+              <table id="scenes-table">
+                <thead>
+                  <tr>
+                    <th>Scene ID</th>
+                    <th>Acquired</th>
+                    <th>BBox</th>
+                    <!-- 🔧 Action column can stay or be removed -->
+                    <th>Info</th>
+                  </tr>
+                </thead>
+                <tbody id="scenes-tbody"></tbody>
+              </table>
+            </div>
+          </section>
+
+          <section id="risk-panel" class="results-panel" hidden>
+            <h3>Risk Assessment</h3>
+
+            <pre id="risk-output">
+Click "Assess Risk" to evaluate the selected area.
+            </pre>
+          </section>
+
+          <pre id="output">
+Select a map area and click "Find Scenes".
+          </pre>
+        </section>
+
+        <!-- ===== TRACKED AREAS PANEL (RIGHT SIDE) ===== -->
+        <section class="card tracked-areas-panel">
+          <h2>📡 Tracked Areas</h2>
+          <p class="hint">Areas checked daily for flooding</p>
+
+          <div class="action-row">
+            <button id="refresh-tracked" class="secondary">Refresh Status</button>
+          </div>
+
+          <div id="tracked-areas-list" class="tracked-list">
+            <p class="hint">No tracked areas yet. Select an area and click "📍 Track Area"</p>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="app.js?v=3"></script>
+
+  </body>
+</html>
