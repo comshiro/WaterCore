@@ -1,8 +1,10 @@
 import base64
+from io import BytesIO
 from datetime import datetime, timezone
 from typing import Dict, List
 
 import httpx
+from PIL import Image
 
 from backend.app.core.config import get_settings
 from backend.app.models.schemas import (
@@ -11,11 +13,15 @@ from backend.app.models.schemas import (
     SceneItem,
     SceneSearchRequest,
     SceneSearchResponse,
+    ClimateBaselineResponse,
 )
 
 
+# =========================
+# DEMO SIGNALS
+# =========================
+
 def get_demo_copernicus_signals() -> Dict[str, float]:
-    # Placeholder values for offline demos when APIs are not connected yet.
     return {
         "rainfall_anomaly": 1.8,
         "soil_moisture_anomaly": 2.1,
@@ -24,13 +30,25 @@ def get_demo_copernicus_signals() -> Dict[str, float]:
     }
 
 
+# =========================
+# TIME UTIL
+# =========================
+
 def _to_utc_iso(value: datetime) -> str:
     if value.tzinfo is None:
         value = value.replace(tzinfo=timezone.utc)
     return value.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
 
 
+# =========================
+# COPERNICUS STAC (RAW DATA ONLY)
+# =========================
+
 def search_copernicus_scenes(payload: SceneSearchRequest) -> SceneSearchResponse:
+    """
+    Pure data retrieval layer.
+    NO ranking, NO filtering logic beyond API query constraints.
+    """
     settings = get_settings()
     search_url = f"{settings.copernicus_stac_url.rstrip('/')}/search"
 
@@ -45,6 +63,7 @@ def search_copernicus_scenes(payload: SceneSearchRequest) -> SceneSearchResponse
         request_body["query"] = {"eo:cloud_cover": {"lte": payload.cloud_cover_lte}}
 
     headers = {"Content-Type": "application/json"}
+
     if settings.copernicus_stac_token:
         headers["Authorization"] = f"Bearer {settings.copernicus_stac_token}"
 
@@ -54,8 +73,10 @@ def search_copernicus_scenes(payload: SceneSearchRequest) -> SceneSearchResponse
         raw = response.json()
 
     scenes: List[SceneItem] = []
+
     for item in raw.get("features", []):
         props = item.get("properties", {})
+
         scenes.append(
             SceneItem(
                 scene_id=item.get("id", "unknown"),
@@ -72,6 +93,10 @@ def search_copernicus_scenes(payload: SceneSearchRequest) -> SceneSearchResponse
         scenes=scenes,
     )
 
+
+# =========================
+# SENTINEL HUB DERIVED LAYERS
+# =========================
 
 def _sentinel_hub_evalscript(layer_type: str) -> str:
     if layer_type == "ndwi":
@@ -119,20 +144,20 @@ function setup() {
 }
 
 function evaluatePixel(sample) {
-  // Rough proxy: lower VV backscatter may correlate with open water.
   let vv = Math.max(sample.VV, 1e-6);
   let waterProxy = vv < 0.03 ? 1.0 : 0.0;
   return [waterProxy, waterProxy, waterProxy, sample.dataMask];
 }
 """.strip()
 
-    raise ValueError("Unsupported layer_type. Use ndwi, ndvi, or flood_proxy_s1.")
+    raise ValueError("Unsupported layer_type")
 
 
 def _sentinel_hub_access_token() -> str:
     settings = get_settings()
+
     if not settings.sentinel_hub_client_id or not settings.sentinel_hub_client_secret:
-        raise ValueError("Sentinel Hub credentials are missing. Set SENTINEL_HUB_CLIENT_ID and SENTINEL_HUB_CLIENT_SECRET.")
+        raise ValueError("Missing Sentinel Hub credentials")
 
     form_data = {
         "grant_type": "client_credentials",
@@ -141,13 +166,13 @@ def _sentinel_hub_access_token() -> str:
     }
 
     with httpx.Client(timeout=settings.sentinel_hub_timeout_seconds) as client:
-        token_response = client.post(settings.sentinel_hub_token_url, data=form_data)
-        token_response.raise_for_status()
-        token_payload = token_response.json()
+        resp = client.post(settings.sentinel_hub_token_url, data=form_data)
+        resp.raise_for_status()
+        token = resp.json().get("access_token")
 
-    token = token_payload.get("access_token")
     if not token:
-        raise ValueError("Sentinel Hub token response did not include access_token.")
+        raise ValueError("No access token returned from Sentinel Hub")
+
     return token
 
 
@@ -155,8 +180,9 @@ def get_sentinel_hub_derived_layer(payload: DerivedLayerRequest) -> DerivedLayer
     settings = get_settings()
     token = _sentinel_hub_access_token()
 
-    process_url = f"{settings.sentinel_hub_base_url.rstrip('/')}{settings.sentinel_hub_process_path}"
-    request_body: Dict[str, object] = {
+    url = f"{settings.sentinel_hub_base_url.rstrip('/')}{settings.sentinel_hub_process_path}"
+
+    body: Dict[str, object] = {
         "input": {
             "bounds": {
                 "bbox": payload.bbox,
@@ -177,7 +203,12 @@ def get_sentinel_hub_derived_layer(payload: DerivedLayerRequest) -> DerivedLayer
         "output": {
             "width": payload.width,
             "height": payload.height,
-            "responses": [{"identifier": "default", "format": {"type": payload.output_mime}}],
+            "responses": [
+                {
+                    "identifier": "default",
+                    "format": {"type": payload.output_mime},
+                }
+            ],
         },
         "evalscript": _sentinel_hub_evalscript(payload.layer_type),
     }
@@ -188,9 +219,9 @@ def get_sentinel_hub_derived_layer(payload: DerivedLayerRequest) -> DerivedLayer
     }
 
     with httpx.Client(timeout=settings.sentinel_hub_timeout_seconds) as client:
-        response = client.post(process_url, json=request_body, headers=headers)
-        response.raise_for_status()
-        image_b64 = base64.b64encode(response.content).decode("utf-8")
+        resp = client.post(url, json=body, headers=headers)
+        resp.raise_for_status()
+        image_b64 = base64.b64encode(resp.content).decode("utf-8")
 
     return DerivedLayerResponse(
         source=settings.sentinel_hub_base_url,
@@ -201,59 +232,133 @@ def get_sentinel_hub_derived_layer(payload: DerivedLayerRequest) -> DerivedLayer
     )
 
 
+# =========================
+# CLIMATE (FALLBACK-FIRST DESIGN)
+# =========================
 
 def _get_synthetic_climate_baseline(latitude: float, longitude: float) -> Dict[str, float]:
-    """
-    Generate realistic synthetic climate baseline anomalies based on lat/lon.
-    Used when CDS API is not available or as a fallback for quick prototyping.
-    """
     import math
-    
-    # Simulate geographic patterns: tropical regions slightly wetter, polar drier
-    lat_factor = abs(latitude) / 90.0  # 0 at equator, 1 at poles
+
+    lat_factor = abs(latitude) / 90.0
     lon_factor = (longitude % 180) / 180.0
-    
-    # Seasonal patterns: simulate mid-year vs end-year differences
-    base_precip_anomaly = 0.5 + lat_factor * 0.3 - lon_factor * 0.2
-    base_temp_anomaly = lat_factor * 0.6 + 0.2
-    base_soil_moisture_anomaly = 0.7 - lat_factor * 0.4
-    
-    # Add realistic noise
+
+    base_precip = 0.5 + lat_factor * 0.3 - lon_factor * 0.2
+    base_temp = lat_factor * 0.6 + 0.2
+    base_soil = 0.7 - lat_factor * 0.4
+
     noise_seed = int((latitude * 257 + longitude * 613) % 1000)
     noise = math.sin(noise_seed * 0.1) * 0.2
-    
+
     return {
-        "precipitation_anomaly": max(0.0, min(3.0, base_precip_anomaly + noise)),
-        "temperature_anomaly": max(0.0, min(3.0, base_temp_anomaly + noise * 0.5)),
-        "soil_moisture_anomaly": max(0.0, min(3.0, base_soil_moisture_anomaly + noise * 0.3)),
+        "precipitation_anomaly": max(0.0, min(3.0, base_precip + noise)),
+        "temperature_anomaly": max(0.0, min(3.0, base_temp + noise * 0.5)),
+        "soil_moisture_anomaly": max(0.0, min(3.0, base_soil + noise * 0.3)),
     }
 
 
-def fetch_climate_baseline(payload) -> "ClimateBaselineResponse":
+def fetch_climate_baseline(payload) -> ClimateBaselineResponse:
     """
-    Fetch climate baseline (precipitation, temperature, soil moisture anomalies)
-    from CDS/ERA5 for given location and date range.
-    Falls back to synthetic data if CDS is unavailable.
+    Pure climate data provider.
+    No risk logic. No scene logic.
     """
-    from backend.app.models.schemas import ClimateBaselineResponse
-    from datetime import datetime as dt
-    
     settings = get_settings()
-    
-    # For MVP: use synthetic data with fallback ready for real CDS integration
-    anomalies = _get_synthetic_climate_baseline(payload.latitude, payload.longitude)
-    
+
+    anomalies = _get_synthetic_climate_baseline(
+        payload.latitude,
+        payload.longitude,
+    )
+
     return ClimateBaselineResponse(
         source="CDS/ERA5 (synthetic fallback)",
         latitude=payload.latitude,
         longitude=payload.longitude,
-        period_start=payload.start_date,
-        period_end=payload.end_date,
-        precipitation_mm=None,  # Would be computed from real CDS data
+        period_start=payload.start_datetime,
+        period_end=payload.end_datetime,
+        precipitation_mm=None,
         precipitation_anomaly=anomalies["precipitation_anomaly"],
-        temperature_mean_c=None,  # Would be computed from real CDS data
+        temperature_mean_c=None,
         temperature_anomaly=anomalies["temperature_anomaly"],
         soil_moisture_anomaly=anomalies["soil_moisture_anomaly"],
         data_quality="fallback" if not settings.cds_api_key else "medium",
-        generated_at=dt.now(timezone.utc),
+        generated_at=datetime.now(timezone.utc),
     )
+
+def get_sentinel1_vv_mean(bbox: List[float], start: datetime, end: datetime) -> float:
+    """
+    Fetch Sentinel-1 VV backscatter proxy using Sentinel Hub.
+
+    Returns:
+        float: mean VV intensity (0–1 normalized proxy)
+    """
+
+    settings = get_settings()
+    token = _sentinel_hub_access_token()
+
+    url = f"{settings.sentinel_hub_base_url.rstrip('/')}{settings.sentinel_hub_process_path}"
+
+    evalscript = """
+//VERSION=3
+function setup() {
+  return {
+    input: ["VV", "dataMask"],
+    output: { bands: 4 }
+  };
+}
+
+function evaluatePixel(sample) {
+  let vv = Math.max(0, Math.min(1, (sample.VV + 30) / 30));
+  return [vv, vv, vv, sample.dataMask];
+}
+""".strip()
+
+    body = {
+        "input": {
+            "bounds": {
+                "bbox": bbox,
+                "properties": {
+                    "crs": "http://www.opengis.net/def/crs/EPSG/0/4326"
+                },
+            },
+            "data": [
+                {
+                    "type": "sentinel-1-grd",
+                    "dataFilter": {
+                        "timeRange": {
+                            "from": _to_utc_iso(start),
+                            "to": _to_utc_iso(end),
+                        }
+                    },
+                }
+            ],
+        },
+        "output": {
+            "width": 256,
+            "height": 256,
+            "responses": [
+                {
+                    "identifier": "default",
+                    "format": {"type": "image/png"},
+                }
+            ],
+        },
+        "evalscript": evalscript,
+    }
+
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json",
+    }
+
+    with httpx.Client(timeout=settings.sentinel_hub_timeout_seconds) as client:
+        resp = client.post(url, json=body, headers=headers)
+        resp.raise_for_status()
+
+    img = Image.open(BytesIO(resp.content)).convert("RGBA")
+    pixels = img.getdata()
+
+    # Compute mean VV using valid pixels only (alpha channel > 0).
+    valid_vv = [r / 255.0 for r, _g, _b, a in pixels if a > 0]
+    if not valid_vv:
+        raise ValueError("Sentinel Hub returned no valid VV pixels for this bbox/time range")
+
+    return round(sum(valid_vv) / len(valid_vv), 4)
