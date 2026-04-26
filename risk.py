@@ -37,7 +37,7 @@ def search_items(catalog, collection, bbox, datetime=None, query=None):
         query=query
     )
 
-    items = list(search.get_items())
+    items = list(search.items())
     if not items:
         raise ValueError(f"No STAC items found for collection={collection}, bbox={bbox}, datetime={datetime}")
     return items
@@ -108,7 +108,7 @@ def sentinel_monthly_ndwi(catalog, bbox, datetime_range, cloud_lt=30, max_scenes
         ndwi = ndwi.rio.write_crs(green.rio.crs)
         ndwi_scenes.append(ndwi)
 
-    ndwi_stack = xr.concat(ndwi_scenes, dim="scene")
+    ndwi_stack = xr.concat(ndwi_scenes, dim="scene", join="outer")
     ndwi_median = ndwi_stack.median(dim="scene", skipna=True)
     ndwi_median = ndwi_median.rio.write_crs(ndwi_scenes[0].rio.crs)
     return ndwi_median

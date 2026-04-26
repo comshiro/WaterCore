@@ -437,3 +437,59 @@ pre {
     grid-template-columns: 1fr;
   }
 }
+
+/* AI Heatmap Loader progress bar */
+.progress-bar {
+  width: 100%;
+  margin: 18px 0 10px 0;
+  height: 36px;
+  background: #f3f4f6;
+  border-radius: 18px;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  box-shadow: 0 2px 8px #0001;
+  min-height: 36px;
+}
+.progress-bar-inner {
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(90deg, #fbbf24 0%, #ef4444 50%, #fbbf24 100%);
+  border-radius: 18px;
+  opacity: 0.18;
+  animation: progressBarPulse 2s linear infinite;
+}
+@keyframes progressBarPulse {
+  0% { opacity: 0.18; }
+  50% { opacity: 0.32; }
+  100% { opacity: 0.18; }
+}
+.progress-bar-text {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  color: #b91c1c;
+  font-size: 0.80rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.progress-spinner {
+  animation: spinner-rotate 1.2s linear infinite;
+}
+@keyframes spinner-rotate {
+  100% { transform: rotate(360deg); }
+}
+.progress-path {
+  stroke-dasharray: 125;
+  stroke-dashoffset: 100;
+  stroke-linecap: round;
+  animation: spinner-dash 1.2s ease-in-out infinite;
+}
+@keyframes spinner-dash {
+  0% { stroke-dashoffset: 125; }
+  50% { stroke-dashoffset: 60; }
+  100% { stroke-dashoffset: 125; }
+}

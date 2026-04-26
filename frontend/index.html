@@ -77,6 +77,16 @@
           <section id="risk-panel" class="results-panel" hidden>
             <h3>Risk Assessment</h3>
 
+            <div id="heatmap-progress" class="progress-bar" style="display:none;">
+              <div class="progress-bar-inner"></div>
+              <span class="progress-bar-text">
+                <svg class="progress-spinner" width="20" height="20" viewBox="0 0 50 50">
+                  <circle class="progress-path" cx="25" cy="25" r="20" fill="none" stroke="#ef4444" stroke-width="5"></circle>
+                </svg>
+                Generating AI heatmap (this may take several minutes)...
+              </span>
+            </div>
+
             <div id="risk-output" class="risk-output">
               Click "Assess Risk" to evaluate the selected area.
             </div>
