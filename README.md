@@ -1,6 +1,24 @@
 # WaterCore - weilding Copernicus
 
-Scaffolding for a hackathon MVP focused on disaster risk monitoring for insurers using Copernicus and Galileo/EGNOS aligned workflows.
+WaterCore is a next-generation platform for insurance companies to transition from "Reactive" to "Proactive" disaster management. By leveraging Copernicus Sentinel data and Predictive AI, we provide hyper-local flood risk assessments for fair premium pricing and automated parametric insurance payouts.
+
+## The Problem
+Traditional flood insurance relies on outdated, coarse-grained maps. This leads to Unfair Pricing (neighbors in a low-risk house pay as much as those in a high-risk basin) and Delayed Payouts (claims taking months to verify via manual inspections).
+
+## Core Features
+1. AI Risk Profiler (Predictive ML)
+Using a Random Forest Classifier trained on historical Copernicus data, we generate a 10m-resolution Flood Susceptibility Heatmap.
+
+Inputs: Copernicus GLO-30 DEM (Elevation/Slope), ESA WorldCover (Land Use), and Historical NDWI Frequency.
+
+Output: A personalized risk score that allows insurers to offer Fair, Data-Driven Premiums.
+
+2. Parametric Claims Engine
+An automated "Truth Witness" that monitors Sentinel-1 (Radar) feeds in real-time.
+
+Logic: When a flood is detected via satellite images, the system intersects the flood mask with Galileo-verified property coordinates.
+
+Result: Instant Payouts triggered as soon as the satellite passes over, removing the need for manual adjusters.
 
 ## Project Layout
 
@@ -26,10 +44,17 @@ pytest backend/tests -q
 ## API Endpoints
 
 - GET /api/v1/health
+- POST /api/v1/flood/detect
+- POST /api/v1/flood/track-area
+- GET /api/v1/flood/tracked-areas
+- POST /api/v1/flood/check-areas
+- POST /api/v1/flood/simulate-alert
+- DELETE /api/v1/flood/tracked-area/{area_id}
 - POST /api/v1/risk/score
 - GET /api/v1/risk/demo
 - POST /api/v1/risk/scenes
 - POST /api/v1/risk/derived-layer
+- POST /api/v1/risk/climate-baseline
 
 ### Scene Discovery Request Example
 
