@@ -1,10 +1,15 @@
 :root {
-  --bg: #ece8df;
-  --text: #1f2a30;
-  --card: #fffaf0;
-  --accent: #0c6e75;
-  --accent-2: #13566a;
-  --border: #d6d6c8;
+  --bg: #eef6f8;
+  --text: #1b2b34;
+  --card: #ffffff;
+
+  --accent: #1f7a8c;
+  --accent-2: #145f6e;
+
+  --border: #d6e3e8;
+
+  --soft-green: #e6f4ea;
+  --soft-blue: #e8f3f7;
 }
 
 * {
@@ -15,7 +20,12 @@ body {
   margin: 0;
   font-family: "Trebuchet MS", "Lucida Sans Unicode", "Lucida Grande", "Lucida Sans", Arial, sans-serif;
   color: var(--text);
-  background: radial-gradient(circle at top right, #d8ecf2 0%, #e7ece8 45%, var(--bg) 100%);
+  background: radial-gradient(
+    circle at top right,
+    #d4eef6 0%,
+    #e6f5f1 40%,
+    #eef6f8 100%
+  );
 }
 
 .shell {
@@ -51,7 +61,7 @@ h3 {
   margin-top: 20px;
   background: var(--card);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: 14px;
   padding: 16px;
 }
 
@@ -105,8 +115,8 @@ button:hover {
 }
 
 button.secondary {
-  background: #d3d8d4;
-  color: #1f2a30;
+  background: #e1f0ec;
+  color: #1b2b34;
 }
 
 pre {
@@ -195,7 +205,7 @@ pre {
 }
 
 .pill {
-  background: #e8f0eb;
+  background: var(--soft-green);
   border: 1px solid #c9d8ce;
   border-radius: 999px;
   padding: 4px 10px;
@@ -218,7 +228,7 @@ pre {
 }
 
 .metric-tile {
-  background: #f0f5f2;
+  background: var(--soft-blue);
   border: 1px solid #d3ddd7;
   border-radius: 8px;
   padding: 8px;
@@ -312,24 +322,6 @@ pre {
   font-size: 0.82rem;
 }
 
-@media (max-width: 760px) {
-  .controls-grid {
-    grid-template-columns: 1fr;
-  }
-
-  #map {
-    height: 300px;
-  }
-
-  .risk-grid {
-    grid-template-columns: 1fr 1fr;
-  }
-
-  .risk-sections {
-    grid-template-columns: 1fr;
-  }
-}
-
 /* ===== LAYOUT FOR TRACKED AREAS ===== */
 
 .layout-container {
@@ -344,6 +336,11 @@ pre {
   top: 20px;
   max-height: 70vh;
   overflow-y: auto;
+}
+
+/* ✅ spacing fix */
+.tracked-areas-panel .action-row {
+  margin-bottom: 12px;
 }
 
 .tracked-list {
@@ -421,4 +418,78 @@ pre {
   .tracked-areas-panel {
     max-height: 300px;
   }
+}
+
+@media (max-width: 760px) {
+  .controls-grid {
+    grid-template-columns: 1fr;
+  }
+
+  #map {
+    height: 300px;
+  }
+
+  .risk-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .risk-sections {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* AI Heatmap Loader progress bar */
+.progress-bar {
+  width: 100%;
+  margin: 18px 0 10px 0;
+  height: 36px;
+  background: #f3f4f6;
+  border-radius: 18px;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  box-shadow: 0 2px 8px #0001;
+  min-height: 36px;
+}
+.progress-bar-inner {
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(90deg, #fbbf24 0%, #ef4444 50%, #fbbf24 100%);
+  border-radius: 18px;
+  opacity: 0.18;
+  animation: progressBarPulse 2s linear infinite;
+}
+@keyframes progressBarPulse {
+  0% { opacity: 0.18; }
+  50% { opacity: 0.32; }
+  100% { opacity: 0.18; }
+}
+.progress-bar-text {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  color: #b91c1c;
+  font-size: 0.80rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.progress-spinner {
+  animation: spinner-rotate 1.2s linear infinite;
+}
+@keyframes spinner-rotate {
+  100% { transform: rotate(360deg); }
+}
+.progress-path {
+  stroke-dasharray: 125;
+  stroke-dashoffset: 100;
+  stroke-linecap: round;
+  animation: spinner-dash 1.2s ease-in-out infinite;
+}
+@keyframes spinner-dash {
+  0% { stroke-dashoffset: 125; }
+  50% { stroke-dashoffset: 60; }
+  100% { stroke-dashoffset: 125; }
 }
