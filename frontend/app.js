@@ -151,6 +151,44 @@ assessAreaButton.addEventListener("click", async () => {
   }
 });
 
+assessHeatmapButton.addEventListener("click", async () => {
+  const bbox = getBboxFromSelection();
+
+  if (!bbox) {
+    output.textContent = "Select an area first.";
+    return;
+  }
+
+  riskPanel.hidden = false;
+  riskOutput.textContent = "Generating AI heatmap summary... first run can take several minutes.";
+
+  const payload = {
+    bbox,
+    include_grid: false
+  };
+
+  try {
+    const response = await fetch(`${FLOOD_API_BASE}/heatmap`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(payload)
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      riskOutput.textContent = `Heatmap failed:\n${JSON.stringify(data, null, 2)}`;
+      return;
+    }
+
+    riskOutput.textContent = JSON.stringify(data, null, 2);
+  } catch (error) {
+    riskOutput.textContent = `Heatmap request error: ${error}`;
+  }
+});
+
 // Draw bbox
 function renderSelection() {
   if (selectionRectangle) {
