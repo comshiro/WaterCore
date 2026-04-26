@@ -125,7 +125,7 @@ assessAreaButton.addEventListener("click", async () => {
   }
 
   riskPanel.hidden = false;
-  riskOutput.textContent = "Assesing risk..."
+  riskOutput.innerHTML = `<div class="risk-loading">Assessing risk...</div>`;
 
   const payload = { bbox }
 
@@ -145,7 +145,7 @@ assessAreaButton.addEventListener("click", async () => {
       return;
     }
 
-    riskOutput.textContent = JSON.stringify(data, null, 2);
+    renderRiskAssessment(data);
   } catch (error) {
     riskOutput.textContent = `Risk request error: ${error}`;
   }
@@ -183,11 +183,118 @@ assessHeatmapButton.addEventListener("click", async () => {
       return;
     }
 
-    riskOutput.textContent = JSON.stringify(data, null, 2);
+    riskOutput.innerHTML = `<details class="raw-json"><summary>AI Heatmap JSON</summary><pre>${escapeHtml(
+      JSON.stringify(data, null, 2),
+    )}</pre></details>`;
   } catch (error) {
     riskOutput.textContent = `Heatmap request error: ${error}`;
   }
 });
+
+function renderRiskAssessment(data) {
+  const floodScore = Number(data.flood_score ?? 0);
+  const scorePct = Math.round(floodScore * 100);
+  const confidencePct = data.confidence != null ? Math.round(Number(data.confidence) * 100) : null;
+  const level = floodScore >= 0.7 ? "HIGH" : floodScore >= 0.4 ? "MEDIUM" : "LOW";
+  const levelClass = level.toLowerCase();
+
+  const climate = data.climate_signal || {};
+  const sar = data.sar_signal || {};
+  const bboxText = Array.isArray(data.bbox) ? data.bbox.map((v) => Number(v).toFixed(3)).join(" | ") : "n/a";
+
+  riskOutput.innerHTML = `
+    <div class="risk-card ${levelClass}">
+      <div class="risk-card-top">
+        <div>
+          <div class="risk-label">Flood Risk Level</div>
+          <div class="risk-level ${levelClass}">${level}</div>
+        </div>
+        <div class="risk-badges">
+          <span class="pill">Score: ${scorePct}%</span>
+          <span class="pill">Height: ${formatNumber(data.estimated_water_height_m, 3)} m</span>
+          <span class="pill">Confidence: ${confidencePct != null ? `${confidencePct}%` : "n/a"}</span>
+        </div>
+      </div>
+
+      <div class="risk-meta">BBox: ${bboxText}</div>
+
+      <div class="risk-grid">
+        <div class="metric-tile">
+          <div class="metric-name">Flood Score</div>
+          <div class="metric-value">${formatNumber(data.flood_score, 4)}</div>
+        </div>
+        <div class="metric-tile">
+          <div class="metric-name">Estimated Water Height</div>
+          <div class="metric-value">${formatNumber(data.estimated_water_height_m, 3)} m</div>
+        </div>
+        <div class="metric-tile">
+          <div class="metric-name">Confidence</div>
+          <div class="metric-value">${data.confidence != null ? `${formatNumber(data.confidence, 4)} (${confidencePct}%)` : "n/a"}</div>
+        </div>
+        <div class="metric-tile">
+          <div class="metric-name">Window</div>
+          <div class="metric-value">${data.confidence_window_hours ?? "n/a"} h</div>
+        </div>
+      </div>
+
+      <div class="risk-sections">
+        <section>
+          <h4>Climate Signal</h4>
+          <ul>
+            <li>Rainfall: ${formatAnomalyWithHistory(climate.rainfall_anomaly)}</li>
+            <li>Temperature: ${formatAnomalyWithHistory(climate.temperature_anomaly)}</li>
+            <li>Soil moisture: ${formatAnomalyWithHistory(climate.soil_moisture_anomaly)}</li>
+          </ul>
+        </section>
+        <section>
+          <h4>SAR Signal</h4>
+          <ul>
+            <li>Pre VV: ${formatNumber(sar.pre_vv, 4)}</li>
+            <li>Post VV: ${formatNumber(sar.post_vv, 4)}</li>
+            <li>Pre valid ratio: ${formatNumber(sar.pre_valid_ratio, 4)}</li>
+            <li>Post valid ratio: ${formatNumber(sar.post_valid_ratio, 4)}</li>
+          </ul>
+        </section>
+      </div>
+
+      <details class="raw-json">
+        <summary>Raw JSON</summary>
+        <pre>${escapeHtml(JSON.stringify(data, null, 2))}</pre>
+      </details>
+    </div>
+  `;
+}
+
+function formatNumber(value, digits) {
+  if (value === null || value === undefined || Number.isNaN(Number(value))) {
+    return "n/a";
+  }
+  return Number(value).toFixed(digits);
+}
+
+function formatAnomalyWithHistory(value) {
+  if (value === null || value === undefined || Number.isNaN(Number(value))) {
+    return "n/a";
+  }
+
+  const anomaly = Number(value);
+  // Index interpretation used by this app: 1.0 ~ historical-normal baseline.
+  const percentDelta = (anomaly - 1) * 100;
+  const sign = percentDelta >= 0 ? "+" : "";
+  const direction = percentDelta >= 0 ? "increase" : "decrease";
+  const scalePct = Math.max(0, Math.min(100, (anomaly / 3) * 100));
+
+  return `${formatNumber(anomaly, 3)} (${sign}${percentDelta.toFixed(1)}% ${direction} vs historical normal, ${scalePct.toFixed(1)}% of anomaly scale)`;
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
 
 // Draw bbox
 function renderSelection() {

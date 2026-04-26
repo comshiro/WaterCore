@@ -13,6 +13,7 @@ from backend.app.services.area_tracking import (
     load_tracked_areas,
     update_tracked_area,
 )
+from backend.app.services.notifications import simulate_high_risk_notification
 from backend.app.models.schemas import ClimateBaselineRequest
 
 import numpy as np
@@ -134,6 +135,15 @@ class TrackAreaRequest(BaseModel):
     label: str = None
 
 
+class SimulateAlertRequest(BaseModel):
+    label: str = "Hackathon Demo Area"
+    bbox: List[float] = [21.0, 45.6, 21.68, 45.92]
+    flood_score: float = 0.92
+    estimated_water_height_m: float = 1.35
+    confidence: float = 0.88
+    previous_status: str = "MEDIUM"
+
+
 class TrackedAreaResponse(BaseModel):
     id: int
     bbox: List[float]
@@ -192,6 +202,38 @@ def manual_check_all_areas() -> Dict[str, Any]:
             "medium_risk": medium_risk_count,
             "areas": [TrackedAreaResponse(**a) for a in updated_areas],
         }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/simulate-alert")
+def simulate_alert(payload: SimulateAlertRequest) -> Dict[str, Any]:
+    """
+    Hackathon endpoint: simulate a HIGH-risk transition alert instantly.
+    """
+    try:
+        if len(payload.bbox) != 4:
+            raise HTTPException(status_code=400, detail="bbox must be [min_lon, min_lat, max_lon, max_lat]")
+
+        area = {
+            "id": f"demo-{int(datetime.now(timezone.utc).timestamp())}",
+            "label": payload.label,
+            "bbox": payload.bbox,
+            "flood_status": "HIGH",
+            "flood_score": payload.flood_score,
+            "estimated_water_height_m": payload.estimated_water_height_m,
+            "confidence": payload.confidence,
+            "last_checked": datetime.now(timezone.utc).isoformat(),
+        }
+
+        result = simulate_high_risk_notification(area, previous_status=payload.previous_status)
+        return {
+            "message": "Simulated HIGH-risk alert triggered",
+            "area": area,
+            "notification": result,
+        }
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

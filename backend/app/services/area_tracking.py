@@ -10,6 +10,7 @@ from typing import List, Dict, Any
 
 from backend.app.services.real_time_detection import compute_flood_assessment, FloodDetectionInput
 from backend.app.services.data_sources import fetch_climate_baseline
+from backend.app.services.notifications import send_high_risk_notification
 from backend.app.models.schemas import ClimateBaselineRequest
 
 
@@ -205,7 +206,14 @@ def check_all_areas() -> List[Dict[str, Any]]:
     updated_areas = []
     
     for area in areas:
+        previous_status = area.get("flood_status")
         updated_area = check_area_for_flood(area)
+
+        if previous_status != "HIGH" and updated_area.get("flood_status") == "HIGH":
+            alert_sent = send_high_risk_notification(updated_area, previous_status)
+            if alert_sent:
+                updated_area["last_alert_sent_at"] = datetime.now(timezone.utc).isoformat()
+
         updated_areas.append(updated_area)
     
     # Rewrite file with updated records

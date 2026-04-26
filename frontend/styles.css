@@ -126,6 +126,159 @@ pre {
   padding: 12px;
 }
 
+.risk-output {
+  margin-top: 10px;
+}
+
+.risk-loading {
+  padding: 10px 12px;
+  border: 1px dashed #b9c8bf;
+  border-radius: 8px;
+  background: #f6faf7;
+  color: #33454d;
+}
+
+.risk-card {
+  border: 1px solid #d9dfda;
+  border-radius: 12px;
+  background: #fbfdfb;
+  padding: 12px;
+}
+
+.risk-card.low {
+  border-left: 6px solid #4f8b52;
+}
+
+.risk-card.medium {
+  border-left: 6px solid #b88a1f;
+}
+
+.risk-card.high {
+  border-left: 6px solid #a73232;
+}
+
+.risk-card-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.risk-label {
+  font-size: 0.78rem;
+  color: #54656c;
+}
+
+.risk-level {
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.risk-level.low {
+  color: #2f6b32;
+}
+
+.risk-level.medium {
+  color: #8b6612;
+}
+
+.risk-level.high {
+  color: #8c1f1f;
+}
+
+.risk-badges {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.pill {
+  background: #e8f0eb;
+  border: 1px solid #c9d8ce;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 0.78rem;
+  color: #2f454e;
+}
+
+.risk-meta {
+  margin-top: 8px;
+  color: #4e5f67;
+  font-family: "Consolas", "Courier New", monospace;
+  font-size: 0.78rem;
+}
+
+.risk-grid {
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.metric-tile {
+  background: #f0f5f2;
+  border: 1px solid #d3ddd7;
+  border-radius: 8px;
+  padding: 8px;
+}
+
+.metric-name {
+  font-size: 0.72rem;
+  color: #4e5f67;
+}
+
+.metric-value {
+  margin-top: 3px;
+  font-weight: 700;
+  color: #22343c;
+}
+
+.risk-sections {
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.risk-sections section {
+  background: #f6faf7;
+  border: 1px solid #d8e3dc;
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+
+.risk-sections h4 {
+  margin: 0 0 6px;
+  font-size: 0.84rem;
+  color: #2f424a;
+}
+
+.risk-sections ul {
+  margin: 0;
+  padding-left: 16px;
+  color: #3f545e;
+  font-size: 0.8rem;
+}
+
+.raw-json {
+  margin-top: 10px;
+}
+
+.raw-json summary {
+  cursor: pointer;
+  color: #2b5b6d;
+  font-weight: 600;
+  font-size: 0.82rem;
+}
+
+.raw-json pre {
+  margin-top: 8px;
+  max-height: 220px;
+  overflow: auto;
+}
+
 .table-wrap {
   overflow-x: auto;
 }
@@ -166,6 +319,14 @@ pre {
 
   #map {
     height: 300px;
+  }
+
+  .risk-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .risk-sections {
+    grid-template-columns: 1fr;
   }
 }
 

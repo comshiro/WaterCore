@@ -19,12 +19,6 @@ class Settings(BaseSettings):
     sentinel_hub_timeout_seconds: int = 60
     sentinel_hub_client_id: str = ""
     sentinel_hub_client_secret: str = ""
-    cds_api_url: str = "https://cds.climate.copernicus.eu/api/v2"
-    cds_api_key: str = ""
-    cds_request_timeout_seconds: int = 300
-    alerts_enabled: bool = False
-    alerts_webhook_url: str = ""
-    alerts_timeout_seconds: int = 10
 
     model_config = SettingsConfigDict(env_file=".env", case_sensitive=False)
 

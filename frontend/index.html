@@ -9,7 +9,7 @@
       rel="stylesheet"
       href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
     />
-    <link rel="stylesheet" href="styles.css?v=3" />
+    <link rel="stylesheet" href="styles.css?v=4" />
   </head>
 
   <body>
@@ -77,9 +77,9 @@
           <section id="risk-panel" class="results-panel" hidden>
             <h3>Risk Assessment</h3>
 
-            <pre id="risk-output">
-Click "Assess Risk" to evaluate the selected area.
-            </pre>
+            <div id="risk-output" class="risk-output">
+              Click "Assess Risk" to evaluate the selected area.
+            </div>
           </section>
 
           <pre id="output">
@@ -104,7 +104,7 @@ Select a map area and click "Find Scenes".
     </main>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="app.js?v=3"></script>
+    <script src="app.js?v=4"></script>
 
   </body>
 </html>
