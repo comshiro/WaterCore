@@ -36,7 +36,7 @@ def demo_risk(threshold: float | None = Query(default=None, ge=0, le=1)) -> Risk
     active_threshold = threshold if threshold is not None else settings.default_alert_threshold
     signals = get_demo_copernicus_signals()
     payload = RiskInput(latitude=45.757, longitude=21.23, **signals)
-    return compute_risk(payload, active_threshold)
+    return compute_risk(payload, active_threshold) 
 
 
 @router.post("/scenes", response_model=SceneSearchResponse)

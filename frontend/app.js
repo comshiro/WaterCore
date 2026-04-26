@@ -320,6 +320,57 @@ function renderSelection() {
   output.textContent = `BBox: ${JSON.stringify(getBboxFromSelection())}`;
 }
 
+function showToast(message) {
+  const el = document.createElement("div");
+
+  el.innerText = message; // important: use innerText, not textContent
+
+  el.style.position = "fixed";
+  el.style.bottom = "20px";
+  el.style.right = "20px";
+  el.style.background = "#a73232";
+  el.style.color = "white";
+  el.style.padding = "12px 16px";
+  el.style.borderRadius = "10px";
+  el.style.zIndex = "9999";
+  el.style.whiteSpace = "pre-line";
+  el.style.fontWeight = "600";
+  el.style.maxWidth = "260px";
+
+  document.body.appendChild(el);
+
+  setTimeout(() => el.remove(), 3500);
+}
+
+function triggerFakeFloodNotification() {
+  const bbox = getBboxFromSelection();
+
+  let areaName = "Selected Area";
+
+  // try to get name from prompt OR fallback
+  const name = prompt("Name this area:", "Recas");
+  if (name) areaName = name;
+
+  const fakeRisk = "HIGH";
+  const fakeScore = (Math.random() * 0.3 + 0.7).toFixed(2); // 0.7–1.0
+
+  const message = `🚨 ${areaName} is FLOODED (${fakeRisk} risk)\nScore: ${fakeScore}`;
+
+  showToast(message);
+
+  output.innerHTML = `
+    <div class="json-viewer">
+      ${formatJSON({
+        event: "fake_flood_alert",
+        area: areaName,
+        bbox: bbox,
+        status: fakeRisk,
+        flood_score: Number(fakeScore),
+        message
+      })}
+    </div>
+  `;
+}
 // Compute bbox
 function getBboxFromSelection() {
   if (selectedPoints.length < 2) return null;
@@ -381,18 +432,7 @@ function renderScenesTable(scenes, totalCount = scenes.length) {
 }
 
 // Demo
-demoButton.addEventListener("click", async () => {
-  output.textContent = "Loading demo...";
-
-  try {
-    const response = await fetch(`${API_BASE}/demo`);
-    const data = await response.json();
-
-    output.textContent = JSON.stringify(data, null, 2);
-  } catch (error) {
-    output.textContent = `Demo error: ${error}`;
-  }
-});
+demoButton.addEventListener("click", triggerFakeFloodNotification);
 
 // ========================================
 // AREA TRACKING
